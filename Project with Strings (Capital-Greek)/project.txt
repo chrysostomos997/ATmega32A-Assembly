@@ -1,0 +1,52 @@
+.include "m32def.inc"
+
+
+
+.equ ramaddr=0x0060    
+.equ Pinakasx=0x0060
+.equ change=32
+.equ diaxorismos=97
+.def Rchange=R18
+
+
+LDI YL,low(ramaddr) //this instruction will load the low byte of the RAM address "ramaddr" into register YL
+LDI YH,high(ramaddr)
+
+LDI XL, low(Pinakasx) 
+LDI XH, high(Pinakasx)
+
+
+LDI Rchange,change //put in rchange the value 32
+
+loop:
+LD R16,Y+
+CPI R16,134
+BRSH GREEK // english or greek  
+CPI R16,diaxorismos // capital or not 
+BRLO MIKRA
+SUB R16,R18
+ST X+,R16
+
+RJMP loop 
+
+
+
+TELOS:
+RJMP TELOS
+
+
+MIKRA:
+CPI R16,0           // Giati to 0<97 opote tha energopoihte to BRLO opote gia na elenxw pote tha ftasei stin teleia prepei na mpei edw mesa to BREQ
+BREQ TELOS          //elenxw pote tha ftasei stin teleia prepei na mpei edw mesa to BREQ
+CP R16,R18
+BREQ vale           //Elegxw an einai iso me 32 diladi an einai iso me 20 sto HEX opou einai to keno
+ADD R16,R18
+ST  X+,R16
+RJMP loop
+
+
+
+vale:               // prosthetw 1 sto low tou x gia na min meinei stin thesi mnimis opou einai to keno kai antigrapsei edw to epomeno gramma
+adiw XL,1
+rjmp loop
+

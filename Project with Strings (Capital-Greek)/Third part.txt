@@ -1,0 +1,61 @@
+
+.include "m32def.inc"
+.def str=R16
+.def str2=R17
+.def counter=R18
+.def counter2=R19
+.equ string=0x0060
+.equ cp_str=0x0080
+
+
+LDI YL,low (cp_str)
+LDI YH,high(cp_str)
+
+LDI ZL,LOW(string)
+LDI ZH,high(string)
+
+CLR counter
+clr counter2
+
+find_string_pos:
+LD str2,Y
+CPI str2,0
+BREQ found
+
+
+
+LD str,Z+
+CPI str,0
+BREQ not_found
+INC counter        // metraei oli ti simvoloseira pou einai mesa i simvoloseira p thelw na vrw 
+CP str,str2
+BRNE not_equal
+ADIW YL,1
+inc counter2            // stin ousia metraei ti simvoloseira pou thelw na vrw 
+RJMP find_string_pos 
+
+not_equal:
+CLR counter2        // se periptwsi pou iparxei 2 fores to prwto gramma to midenizw 
+LDI YL,low (cp_str)
+LDI YH,high(cp_str)
+RJMP find_string_pos
+
+
+
+
+
+not_found:
+
+rjmp telos
+
+
+
+
+found:
+
+sub counter,counter2    // dinei tin teliki thesi
+rjmp telos
+
+
+telos:
+rjmp telos
