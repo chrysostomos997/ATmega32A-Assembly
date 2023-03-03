@@ -1,0 +1,49 @@
+﻿/*
+// 1.3
+
+DIPSWITCH 8 --> Port Α.
+8 LED --> Port B.
+2 buttons --> Port C.
+
+Read DIPSWITCH and the number from DIPSWITCH,
+and move it in LEDS.
+Check both buttons 
+The first button increase number and the second button decrease number.Show number in leds
+*/
+.include "m32def.inc"
+
+init:
+	
+
+	SBI PORTC, 0		
+	SBI PORTC, 1		
+	
+	SER R16
+	OUT PORTA, R16		
+
+	OUT DDRB, R16		
+
+	IN R16, PINA		//read DIPSWITCH
+	OUT PORTB, R16	//LEDS
+	
+main:
+
+	SBIS PINC, 0		
+	RJMP INCREASE		
+	SBIS PINC, 1		
+	RJMP DECREASE		
+	RJMP main
+
+INCREASE:
+	SBIS PINC, 0	
+	RJMP INCREASE	
+	INC R16			
+	OUT PORTB, R16	
+	RJMP main		
+
+DECREASE:
+	SBIS PINC, 1	
+	RJMP DECREASE	
+	DEC R16			
+	OUT PORTB, R16	
+	RJMP main		

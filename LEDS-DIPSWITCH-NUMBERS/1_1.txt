@@ -1,0 +1,39 @@
+//Askisi 1_1
+
+/*
+DIPSWITCH --> PORT A
+8 LED --> PORT B
+Read from DIPSWITCH 
+
+*/
+
+.include "m32def.inc"
+
+init:
+	
+	;PORT A Setup
+	LDI R16, 0x00	
+	OUT DDRA, R16	;Inputs
+	LDI R16, 0xFF	;1 = Pull up ON
+	OUT PORTA, R16	;
+
+	;PORT B Setup
+	OUT DDRB, R16	;1 = OUT ( 0xFF from previous LDI R16, 0xFF)
+	LDI R16, 0x00
+	OUT PORTB, R16
+	
+	
+main:
+	IN R16, PINA	
+			
+	OUT PORTB, R16	//port B--R16
+			//LED-DIPSWITCH
+	RJMP main
+
+
+
+
+
+
+
+

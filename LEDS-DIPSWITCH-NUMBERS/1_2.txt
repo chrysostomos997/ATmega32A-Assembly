@@ -1,0 +1,32 @@
+﻿/*
+//1.2
+2 button and 1 LED in port C.
+
+
+LED will be turned on and stays on when two buttons are pressed .
+
+*/
+.include "m32def.inc"
+
+init:
+	
+	CBI DDRC, 0			
+	SBI PORTC, 0		
+	CBI DDRC, 1			
+	SBI PORTC, 1		
+	SBI DDRC, 6			
+	CBI PORTC, 6		
+	
+main:
+
+	SBIC PINC, 0		
+	RJMP LEDoff			
+	SBIC PINC, 1		
+	RJMP LEDoff
+
+	SBI PORTC, 6		
+	RJMP main
+
+LEDoff:
+	CBI PORTC, 6		
+	RJMP main
