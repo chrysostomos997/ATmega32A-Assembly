@@ -1,0 +1,116 @@
+;Άσκηση 6.3
+/*
+
+prn1hex -> print 1 byte hex
+
+*/
+
+.include "m32def.inc"
+
+.def workl=R16		
+.def workh=R17		
+.def SCANCOL=R20	
+					
+.def INDBKUPL=R18	
+.def INDBKUPH=R19	
+.def counter = R21
+.def font = R10
+
+.equ SEGPORT=PORTD
+.equ SCANPORT=PORTB
+
+.dseg
+FONTBUF: .byte 5	
+					
+.dseg
+DEC2PRINT: .byte 2	
+					
+					
+.cseg
+.org 0
+RJMP start
+
+.org $016		
+RJMP dispscan
+
+start:
+	
+	LDI workl, low(RAMEND)
+	OUT SPL, workl
+	LDI workl, high(RAMEND)
+	OUT SPH, workl
+
+		
+dispinit:
+	LDI workl,0b11110000
+	OUT SCANPORT-1, workl 		
+	SER workl
+	OUT SCANPORT, workl 		
+								
+	OUT SEGPORT-1, workl 		
+	LDI SCANCOL, 0b11101111 	
+	LDI INDBKUPH, high(FONTBUF)	
+	LDI INDBKUPL, low(FONTBUF) 	
+
+	LDI workl, (1<<TOIE0)
+	OUT TIMSK, workl			
+	LDI workl,(1<<CS02) 		;Prescaler = 256
+	OUT TCCR0, workl			
+
+	SEI
+
+main:
+
+	LDI workl, 0x5A ;
+	CALL prn1hex	;
+
+		
+/*
+	
+	LDI workl, low(869)			
+	STS DEC2PRINT, workl		
+	LDI workl, high(869)		
+	CALL prn2dec				
+
+*/
+
+end:
+	RJMP end
+
+
+
+dispscan:
+	PUSH workl
+	IN workl, SREG
+	PUSH workl
+
+	MOV XL, INDBKUPL
+	MOV XH, INDBKUPH
+	SER workl
+	OUT SCANPORT, workl
+	LD workl, X+
+	OUT SEGPORT, workl
+	OUT SCANPORT, SCANCOL
+	MOV INDBKUPL, XL
+	MOV INDBKUPH, XH
+	SEC
+	ROL SCANCOL
+	BRCS dispscan0
+	LDI SCANCOL, 0b11101111
+	LDI INDBKUPH, high(FONTBUF) 
+	LDI INDBKUPL, low(FONTBUF)
+dispscan0:
+
+	POP workl
+	OUT SREG, workl
+	POP workl
+
+	RETI
+
+FontTable:
+.db 0x22, 0xAF, 0x31, 0x25		//0 - 1 - 2 - 3
+.db 0xAC, 0x64, 0x60, 0x2F		//4 - 5 - 6 - 7
+.db 0x20, 0x24, 0x28, 0xE0		//8 - 9 - A - B
+.db 0x72, 0xA1, 0x70, 0x78		//C - D - E - F
+
+.include "PrintROUT.asm"

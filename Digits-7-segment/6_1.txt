@@ -1,0 +1,40 @@
+;6.1
+/*
+read DIPSWITCH and show it in 7Segment.
+
+DIPSWITCH -> PORT A
+7 Segment -> PORT B
+
+*/
+
+.include "m32def.inc"
+
+.def work =		R16	
+
+.org 0
+	RJMP setup
+
+setup:
+	
+	LDI work,low(RAMEND)
+	OUT SPL,work
+	LDI work,high(RAMEND)
+	OUT SPH,work
+
+	LDI work, 0xFF
+	OUT PORTA, work	
+
+	OUT DDRB, work	
+	OUT PORTB, work	
+loop:
+	IN work, PINA		//read DIPSWITCH
+	OUT PORTB, work		
+
+	RJMP loop
+
+*/
+FontTable:
+.db 0x22, 0xAF, 0x31, 0x25		//0 - 1 - 2 - 3
+.db 0xAC, 0x64, 0x60, 0x2F		//4 - 5 - 6 - 7
+.db 0x20, 0x24, 0x28, 0xE0		//8 - 9 - A - B
+.db 0x72, 0xA1, 0x70, 0x78		//C - D - E - F

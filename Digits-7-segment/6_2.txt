@@ -1,0 +1,114 @@
+﻿; 6_2
+/*
+
+
+
+
+SEGPORT = PORTD
+SCANPORT = PORTB
+
+
+*/
+
+.include "m32def.inc"
+
+.def SCANCOL=R17	
+					
+.def work=R16
+.def INDBKUPL=R18	
+.def INDBKUPH=R19	
+
+.equ SEGPORT=PORTD
+.equ SCANPORT=PORTB
+
+.dseg
+FONTBUF: .byte 5	
+					
+
+.cseg
+.org 0
+RJMP start
+
+.org $016		
+RJMP dispscan
+
+start:
+		
+		LDI work, low(RAMEND)
+		OUT SPL, work
+		LDI work, high(RAMEND)
+		OUT SPH, work
+
+		
+dispinit:
+		LDI work,0b11110000
+		OUT SCANPORT-1, work 		
+		SER work
+		OUT SCANPORT, work 		
+						
+		OUT SEGPORT-1, work 		
+		LDI SCANCOL, 0b11101111 	
+		LDI INDBKUPH, high(FONTBUF)	
+		LDI INDBKUPL, low(FONTBUF) 	
+
+		LDI work, (1<<TOIE0)
+		OUT TIMSK, work			
+		LDI work,(1<<CS02) 		;Prescaler = 256
+		OUT TCCR0, work			
+
+		SEI
+
+main:
+		LDI work, 0xFA 		;Font Ι
+		STS FONTBUF, work 	;^^^^^^^^
+		LDI work, 0x70 		;Font  Ε
+		STS FONTBUF+1, work 	;^^^^^^^^
+		LDI work, 0xF0		;Font  t
+		STS FONTBUF+2, work	;^^^^^^^^
+		LDI work, 0xFF		;0xFF
+		STS FONTBUF+3, work	;
+
+end: RJMP end
+
+/*
+
+
+dispscan:
+		PUSH work
+		IN work, SREG
+		PUSH work
+
+		MOV XL, INDBKUPL	
+		MOV XH, INDBKUPH	
+		SER work		
+		OUT SCANPORT, work	
+		LD work, X+		
+		OUT SEGPORT, work	
+		OUT SCANPORT, SCANCOL	
+					
+
+		
+		MOV INDBKUPL, XL		
+		MOV INDBKUPH, XH		
+		SEC				
+		ROL SCANCOL			
+		BRCS dispscan0			
+						
+		LDI SCANCOL, 0b11101111		 
+		LDI INDBKUPH, high(FONTBUF) 	
+		LDI INDBKUPL, low(FONTBUF)	
+	
+dispscan0:
+	
+		POP work
+		OUT SREG, work
+		POP work
+
+		RETI
+
+		
+FontTable:
+.db 0x22, 0xAF, 0x31, 0x25		//0 - 1 - 2 - 3
+.db 0xAC, 0x64, 0x60, 0x2F		//4 - 5 - 6 - 7
+.db 0x20, 0x24, 0x28, 0xE0		//8 - 9 - A - B
+.db 0x72, 0xA1, 0x70, 0x78		//C - D - E - F

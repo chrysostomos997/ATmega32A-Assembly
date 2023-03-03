@@ -1,0 +1,122 @@
+;Routine
+
+;routine show number in hex in digits 7-Segment display.
+;----------------------------------------------------
+prn1hex:
+
+	LDI workh, 0				
+	LDI ZH, high(FontTable <<1)	
+	LDI ZL, low(FontTable <<1)
+	PUSH workl					
+								
+	ANDI workl, 0x0F			
+	ADD ZL, workl				
+	ADC ZH, workh				
+	LPM workl, Z				
+	STS FONTBUF, workl			
+
+	
+	LDI ZH, high(FontTable <<1)	;
+	LDI ZL, low(FontTable <<1)
+	POP workl					
+	SWAP workl					
+	ANDI workl, 0x0F			
+	ADD ZL, workl				
+	ADC ZH, workh				
+	LPM workl, Z				
+	STS FONTBUF+1, workl		
+
+	;Αριστερός Ενδείκτης
+	LDI workl, 0xFF			
+	STS FONTBUF+2, workl		
+								
+
+	
+	LDI workl, 0xFF			
+	STS FONTBUF+3, workl		
+								
+
+	RET
+;----------------------------------------------------
+
+;Routine show a number in dec 2 bytes in digits 7-Segment display.
+;----------------------------------------------------
+prn2dec:
+	LDI YL, low(FONTBUF)
+	LDI YH, high(FONTBUF)
+	LDI XL, low(DEC2PRINT)
+	LDI XH, high(DEC2PRINT)
+
+
+;----------------------------------------------------
+bin27seg:
+	LDI workl,10
+	LDI workh,0
+	RCALL div16um
+	RCALL getfont
+	ST Y+,font 		
+
+	LDI XL,0 		
+	LDI XH,0 		
+	RCALL div16um
+	RCALL getfont
+	ST Y+,font 		
+
+	RCALL div16um
+	RCALL getfont
+	ST Y+,font 		
+
+	RCALL div16um
+	RCALL getfont
+	ST Y+,font 		
+
+	MOV R2,R0 		
+	RCALL getfont
+	ST Y+,font 		
+
+	SBIW Y,5
+	RET
+
+getfont:
+	SUB font,font
+	LDI ZL,low(FontTable<<1)
+	LDI ZH,high(FontTable<<1)
+	ADD ZL,R2
+	ADC ZH,font
+	LPM font,Z
+	RET
+;----------------------------------------------------
+
+
+
+; [Χ+1]:[Χ]  workh:workl
+;----------------------------------------------------
+div16um:
+	PUSH counter
+	LD R0,X+
+	LD R1,X+
+	SBIW X,2
+	LDI counter,17
+	SUB R2,R2
+	SUB R3,R3
+div16um1:
+	ROL R0
+	ROL R1
+	DEC counter
+	BRNE div16um2
+	POP counter
+	RET
+div16um2:
+	ROL R2
+	ROL R3
+	SUB R2,workl
+	SBC R3,workh
+	BRCC div16um3
+	ADD R2,workl
+	ADC R3,workh
+	CLC
+	RJMP div16um1
+div16um3:
+	SEC
+	RJMP div16um1
+;----------------------------------------------------
