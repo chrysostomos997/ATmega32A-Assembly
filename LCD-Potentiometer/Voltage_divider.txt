@@ -1,0 +1,48 @@
+
+/*
+AREF = 2.5V --> voltage divider.
+Αvcc = 5V
+
+*/
+
+.include "m32def.inc"
+
+.def work = R16
+.def work2 = R17
+
+.org 0
+init:
+
+	
+	LDI work, high(RAMEND)
+	OUT SPH, work
+	LDI work, low(RAMEND)
+	OUT SPL, work
+
+	
+	LDI work, (1<<MUX4)	;AREF, ADC0 - ADC1 X1
+	OUT ADMUX, work
+	LDI work, (1<<ADEN)|(1<<ADSC)|(1<<ADPS1)|(1<<ADPS0)  Prescaler = 8
+	OUT ADCSRA, work
+
+	RCALL LCD4setup	
+	RCALL LCD4cls	
+	
+main:
+	SBI ADCSRA, ADSC	
+
+check:
+	SBIS ADCSRA, ADIF	;Polling 
+	RJMP check
+
+	IN binary, ADCL		
+	IN binaryH,ADCH		
+
+	LDI LCDcurspos, 0
+	RCALL LCD4positcursor	
+	RCALL LCD4_prn16num		
+	
+	RJMP main
+
+.include "LCD.asm"
+.include "bin2bcd.asm"

@@ -1,0 +1,264 @@
+; LCD
+
+.def LCD4dataReg=R18
+.def LCDcurspos=R19
+
+.equ LCD4port=PORTB
+	.equ LCD4en=2
+	.equ LCD4rw=1
+	.equ LCD4rs=0
+.equ LCD4busy=7
+
+; LCD
+.equ LCDclear=		0b00000001
+.equ LCDhome=		0b00000010
+.equ LCDon=			0b00001100
+.equ LCDoff=		0b00001000
+.equ LCDcursoron=	0b00001111
+.equ LCDcursoroff=	0b00001100
+
+
+;---------+
+LCD4wait:;|
+;---------+
+	LDI work,0b0000_0111 
+	OUT LCD4port-1,work 
+
+	CBI LCD4port,LCD4rs 
+	SBI LCD4port,LCD4rw 
+
+LCD4wait1:
+	SBI LCD4port,LCD4en ;E <-- 1:
+	RCALL LCD4wait0 ;high nibble
+	
+	IN work,LCD4port-2 ;read PINs
+	BST work,LCD4busy ;save busy --> Τ
+	
+	CBI LCD4port,LCD4en ;E <-- 0
+	RCALL LCD4wait0
+	
+	SBI LCD4port,LCD4en ;
+	RCALL LCD4wait0 ;  
+	CBI LCD4port,LCD4en
+	;RCALL LCD4wait0 
+	
+	BRTC LCD4wait2
+	RJMP LCD4wait1
+LCD4wait2:
+	LDI work,0b1111_0111 ;outputs
+	OUT LCD4port-1,work ;
+LCD4wait0:
+	RET
+	
+;--------+
+LCD4cmd:;|
+;--------+
+	RCALL LCD4wait
+	CBI LCD4port,LCD4rs
+LCD4write:
+;--------
+	LDI work,0b1111_0111 
+	OUT LCD4port-1,work 
+	
+	CBI LCD4port,LCD4rw
+	
+	PUSH LCD4dataReg ;high nibble
+	ANDI LCD4dataReg,0b11110000
+	
+	IN work,LCD4port 
+	ANDI work,0b00001111
+	OR work,LCD4dataReg 
+	OUT LCD4port,work 
+	
+	SBI LCD4port,LCD4en 
+	RCALL LCD4cmd0
+	CBI LCD4port,LCD4en
+	;RCALL LCD4cmd0 
+	
+	POP LCD4dataReg 
+	PUSH LCD4dataReg
+	ANDI LCD4dataReg,0b00001111
+	SWAP LCD4dataReg
+	
+	IN work,LCD4port 
+	ANDI work,0b00001111
+	OR work,LCD4dataReg 
+	OUT LCD4port,work 
+	
+	SBI LCD4port,LCD4en 
+	RCALL LCD4cmd0
+	CBI LCD4port,LCD4en
+	RCALL LCD4cmd0 
+	
+	POP LCD4dataReg
+LCD4cmd0:
+	RET
+
+	
+	
+;------------------------------------------------------------
+LCD4data: ;Send LCD4dataReg as data
+;If DDRAM was selected data=character
+;IF CGRAM was selected data=dot line of greek char
+;------------------------------------------------------------
+	CALL LCD4wait 				;Wait for previous work to finish
+	SBI LCD4port,LCD4rs 	;Select data
+	RJMP LCD4write
+
+;-----------------------------
+LCD4setup: ;initialazation LCD
+;-----------------------------
+	LDI work,0b1111_0111 
+	OUT LCD4port-1,work
+	
+LCD4reset:
+	RCALL delay20ms ;(1)
+	
+	LDI LCD4dataReg,0b0011_0100 ;(2)
+	OUT LCD4port,LCD4dataReg
+	SBI LCD4port,LCD4en
+	RCALL delay120us
+	CBI LCD4port,LCD4en
+	
+	RCALL delay5ms ;(3)
+	
+	OUT LCD4port,LCD4dataReg ;(4)
+	SBI LCD4port,LCD4en
+	RCALL delay120us
+	CBI LCD4port,LCD4en
+	
+	RCALL delay120us ;(5)
+	
+	OUT LCD4port,LCD4dataReg ;(6)
+	SBI LCD4port,LCD4en
+	RCALL delay120us
+	CBI LCD4port,LCD4en
+	RCALL delay120us
+	
+LCD4init:
+	LDI LCD4dataReg,0b0010_0100
+	OUT LCD4port,LCD4dataReg ;(1)
+	SBI LCD4port,LCD4en
+	RCALL delay120us
+	CBI LCD4port,LCD4en
+	RCALL delay120us
+	
+	LDI LCD4dataReg,0b0010_1000 ;(2)
+	RCALL LCD4cmd
+	
+	LDI LCD4dataReg,0b0000_1100 ;(3)
+	RCALL LCD4cmd
+	
+	LDI LCD4dataReg,0b0000_0110 ;(4)
+	RCALL LCD4cmd
+LCD4setup0:
+	RET
+
+;---------------
+LCD4positcursor:
+;---------------
+	MOV LCD4dataReg,LCDcurspos
+	ORI LCD4dataReg,0x80 
+	RCALL LCD4cmd
+	RET
+;-------------
+LCD4CursorOn:
+;-------------
+	LDI LCD4dataReg,LCDcursoron
+	RCALL LCD4cmd
+	RET
+;-------------
+LCD4CursorOff:
+;-------------
+	LDI LCD4dataReg,LCDcursoroff
+	RCALL LCD4cmd
+	RET
+;-------
+LCD4cls:
+;-------
+	LDI LCD4dataReg,LCDclear
+	RCALL LCD4cmd
+	LDI LCDcurspos,0
+	RET
+
+;------------
+LCD4prnstr:
+;------------
+	RCALL LCD4positcursor
+LCD4prnstr1: 
+	LPM LCD4dataReg, Z+
+	TST LCD4dataReg
+	BREQ LCD4prnstr0
+	RCALL LCD4data
+	INC LCDcurspos 
+	RJMP LCD4prnstr1
+LCD4prnstr0:
+	RET
+
+
+LCD4_prn16num:
+;===============
+	RCALL bin2BCD16			// binaryH:binary --> BCD --> bcd2:bcd1:bcd0
+	RCALL bcd2ubcd			// BCD --> unpacked -->save dig
+
+	
+
+	;tens of thousands
+	LDS LCD4dataReg, dig	
+	ORI LCD4dataReg, 0x30	;--> ASCII
+	RCALL LCD4data			
+	;thousands
+	LDS LCD4dataReg, dig+1
+	ORI LCD4dataReg, 0x30
+	RCALL LCD4data
+	;hundrets
+	LDS LCD4dataReg, dig+2
+	ORI LCD4dataReg, 0x30
+	RCALL LCD4data
+	;tens
+	LDS LCD4dataReg, dig+3
+	ORI LCD4dataReg, 0x30
+	RCALL LCD4data
+	;units
+	LDS LCD4dataReg, dig+4
+	ORI LCD4dataReg, 0x30
+	RCALL LCD4data
+
+	RET
+
+;--------------------------
+delay20ms: ;Delay 20.2 ms
+;--------------------------
+	RCALL delay5ms
+	RCALL delay5ms
+	RCALL delay5ms
+	RCALL delay5ms
+	RET
+;-------------------------
+delay5ms: ;Delay 5.05 ms
+;--------------------------
+	PUSH work
+	LDI work,42
+delay5ms1:
+	CALL delay120us
+	DEC work
+	BRNE delay5ms1
+	POP work
+	RET
+;------------------------------------
+delay120us: ;Delay 120 micro seconds
+;------------------------------------
+	PUSH work
+	PUSH work2
+	LDI work,120
+	LDI work2,3
+delay120us1:
+	DEC work
+	BRNE delay120us1
+	DEC work2
+	BRNE delay120us1
+	POP work2
+	POP work
+	NOP
+	RET
+	

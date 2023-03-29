@@ -1,0 +1,123 @@
+.def bcd2=R2
+.def bcd1=R1
+.def bcd0=R0
+.def binary=R20
+.def binaryH = R21	
+.def counter=R22
+
+.dseg
+dig: .byte 5		
+			
+		
+
+.cseg
+;---------
+bin2bcd8:
+;---------
+	LDI counter,8 	; bits
+	CLR bcd1 		
+	CLR bcd0
+bin2bcd8a:
+	MOV work,bcd0 
+	SUBI work,-0x03 
+	SBRC work,3 	
+	MOV bcd0,work 
+
+	MOV work,bcd0 	
+	SUBI work,-0x30 
+	SBRC work,7 	
+	MOV bcd0,work 	
+
+	MOV work,bcd1 	
+	SUBI work,-0x03
+	SBRC work,3
+	MOV bcd1,work
+	
+	LSL binary 		
+	ROL bcd0 		
+	ROL bcd1
+	DEC counter
+	BRNE bin2bcd8a 	
+	RET
+
+;bcd for 2 bytes.
+;---------
+bin2bcd16:
+;---------
+	PUSH binary		
+	PUSH binaryH	
+					
+
+	LDI counter,16 	
+	CLR bcd2
+	CLR bcd1
+	CLR bcd0
+bin2bcd16a:
+	MOV work,bcd0 	
+	SUBI work,-3 	
+	SBRC work,3 	
+	MOV bcd0,work 	
+
+	MOV work,bcd0 	
+	SUBI work,-0x30 
+	SBRC work,7 	
+	MOV bcd0,work 	
+
+	MOV work,bcd1 	
+	SUBI work,-3
+	SBRC work,3
+	MOV bcd1,work
+
+	MOV work,bcd1
+	SUBI work, -0x30
+	SBRC work, 7
+	MOV bcd1,work
+
+	MOV work,bcd2 	
+	SUBI work,-3
+	SBRC work,3
+	MOV bcd2,work
+
+	LSL binary 		
+	ROL binaryH
+	ROL bcd0 		
+	ROL bcd1
+	ROL bcd2
+	DEC counter
+	BRNE bin2bcd16a 	
+
+	POP binaryH		
+	POP binary
+	RET
+
+
+;---------
+bcd2ubcd:
+;---------
+	;units
+	MOV work, bcd0
+	CBR work, 0xF0
+	STS dig+4, work
+
+	;tens
+	MOV work, bcd0
+	SWAP work
+	CBR work, 0xF0
+	STS dig+3, work
+	
+	;hundreds
+	MOV work, bcd1
+	CBR work, 0xF0
+	STS dig+2, work
+
+	;thousands
+	MOV work, bcd1
+	SWAP work
+	CBR work, 0xF0
+	STS dig+1, work
+
+	;tens of thousands
+	STS dig, bcd2
+
+	RET
+	
